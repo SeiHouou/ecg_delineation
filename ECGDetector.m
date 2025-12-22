@@ -1,0 +1,172 @@
+% ------------------------------------------------------------------------------%
+% Biosignal Analysis Using Matlab - Project 3
+% ECG Signal Component Analysis
+% ------------------------------------------------------------------------------%
+% Name : Juan Pablo Florez Suarez, Aida Daniela Becerra Lopez
+% MATLAB Version : R2025b
+% ------------------------------------------------------------------------------%
+
+%% 1. (1P) Clear the workspace.
+close all
+clear
+clc
+
+
+%% 2. (1P) Load the file stim_R_200.csv into the workspace and remove header if applicable.
+filename = 'stim_R_200.csv';
+Fs = 10e3; % sampling frequency [Hz]
+
+% Robust CSV import (handles potential header lines)
+opts = detectImportOptions(filename);
+tbl  = readtable(filename, opts);
+
+% Use only the 3rd column (task definition)
+if width(tbl) < 3
+    error('Input file has %d columns, but column 3 is required.', width(tbl));
+end
+
+ecg = tbl{:,3};
+ecg = ecg(:);
+
+N = numel(ecg);
+time = (0:N-1)'/Fs;
+
+%% 3. (1P) Plot the ECG signal in a figure. Label axes and name the signal.
+figure;
+plot(time, ecg, 'DisplayName','ECG');
+grid on;
+title('ECG Signal (stim\_R\_200, column 3)');
+xlabel('Time [s]');
+ylabel('ECG Amplitude [mV]');
+legend('show','Location','best');
+
+%% 4. (27P) Analysis of the ECG signal
+
+%% 4.b (2P) Find the QRS-complexes in the ECG signal.
+% R peak detection (Pan–Tompkins style front-end)
+[R_locs, ~, bp_ecg] = detectRpeak(ecg, Fs, false); %Checked function
+
+% QRS delineation: Q onset, Q peak, R peak, S peak, S offset
+[Q_on, Q_peak, R_peak, S_peak, S_off] = delineateQRS(bp_ecg, R_locs, Fs, false); %Checked function
+
+%% 4.a (2P) Find the P-peaks in the ECG signal.
+% We also compute P onset/offset to enable PR-interval and PR-segment.
+[P_on, P_peak, P_amp, P_off] = detectPwave(ecg, R_peak, Q_on, Fs, true, ...
+                                            'BaseAmpFrac', 0.5, ...
+                                            'BaseSlopeFrac', 0.40, ...
+                                            'DerivSmooth_ms', 10, ...
+                                            'OnsetWin_ms', 50);
+
+%% 4.c (2P) Find the T-peaks in the ECG signal.
+% We also compute T onset/offset to enable QT-interval, ST-interval, ST-segment.
+[T_on, T_peak, ~, T_off] = detectTwave(ecg, R_peak, S_off, Fs, false);
+
+%% 4.d (1P) Plot ECG and mark found peaks.
+plotECGWithMarkers(ecg, Fs, 'ECG with P/R/T peaks', ...
+                    'tmin', 0, 'tmax', 10, ...
+                    P_peak, 'P peak', ...
+                    R_peak, 'R peak', ...
+                    T_peak, 'T peak');
+
+%% 4.e–4.k (12P) Compute intervals/segments and store their durations.
+intervals = computeECGIntervals(R_peak, P_on, P_off, Q_on, S_off, T_on, T_off, Fs);
+
+% RR (4.e)
+RR_s = intervals.RR_s;
+
+% PR interval (4.f)
+PR_s = intervals.PR_s;
+
+% QT interval (4.g)
+QT_s = intervals.QT_s;
+
+% ST interval (4.h)
+STint_s = intervals.STint_s;
+
+% QRS interval (4.i)
+QRS_s = intervals.QRS_s;
+
+% PR segment (4.j)
+PRseg_s = intervals.PRseg_s;
+
+% ST segment (4.k)
+STseg_s = intervals.STseg_s;
+
+%% 4.l (1P) Plot ECG and mark the found intervals and segments.
+markers = struct(...
+            'P_on',P_on, 'P_peak',P_peak, 'P_off',P_off, ...
+            'Q_on',Q_on, 'R',R_peak, 'S_off',S_off, ...
+            'T_on',T_on, 'T_peak',T_peak, 'T_off',T_off);
+
+plotECGWithIntervals(ecg, Fs, 'ECG with intervals/segments (first 10 s)', intervals, markers, ...
+    'tmin', 0, 'tmax', 10);
+
+%% 4.m (2P) Determine respiratory component and calculate the envelope.
+% We use ECG-derived respiration (EDR) from beat-to-beat R-peak amplitude modulation.
+[resp, env, t_env] = ecgRespEnvelope(ecg, R_peak, Fs, false);
+
+%% 4.n (1P) Plot ECG and envelope in one figure and add all components.
+figure;
+yyaxis left
+plot(time, ecg, 'DisplayName','ECG');
+hold on; grid on;
+plot(time(P_on(~isnan(P_on))), ecg(P_on(~isnan(P_on))), 'ko', 'MarkerFaceColor','k', 'DisplayName','P onset');
+plot(time(P_peak(~isnan(P_peak))), ecg(P_peak(~isnan(P_peak))), 'ro', 'MarkerFaceColor','r', 'DisplayName','P peak');
+plot(time(P_off(~isnan(P_off))), ecg(P_off(~isnan(P_off))), 'go', 'MarkerFaceColor','g', 'DisplayName','P offset');
+
+plot(time(Q_on(~isnan(Q_on))), ecg(Q_on(~isnan(Q_on))), 'k^', 'MarkerFaceColor','k', 'DisplayName','Q onset');
+plot(time(R_peak(~isnan(R_peak))), ecg(R_peak(~isnan(R_peak))), 'rv', 'MarkerFaceColor','r', 'DisplayName','R peak');
+plot(time(S_off(~isnan(S_off))), ecg(S_off(~isnan(S_off))), 'mv', 'MarkerFaceColor','m', 'DisplayName','S offset');
+
+plot(time(T_on(~isnan(T_on))), ecg(T_on(~isnan(T_on))), 'ks', 'MarkerFaceColor','k', 'DisplayName','T onset');
+plot(time(T_peak(~isnan(T_peak))), ecg(T_peak(~isnan(T_peak))), 'rs', 'MarkerFaceColor','r', 'DisplayName','T peak');
+plot(time(T_off(~isnan(T_off))), ecg(T_off(~isnan(T_off))), 'gs', 'MarkerFaceColor','g', 'DisplayName','T offset');
+
+ylabel('ECG [mV]');
+
+% Envelope on right axis
+% (env is a low-frequency trend; plotting it at full scale is fine)
+yyaxis right
+plot(t_env, env, 'DisplayName','Resp. envelope');
+ylabel('Envelope (a.u.)');
+
+xlabel('Time [s]');
+title('ECG and respiratory envelope with delineation');
+xlim([0 60]);
+legend('show','Location','best');
+
+%% 4.o (0.5P) Effect of breathing on ECG signal (comment).
+% Breathing mainly affects the ECG through (i) baseline wander (low-frequency drift)
+% and (ii) amplitude modulation of the QRS complexes (ECG-derived respiration / EDR),
+% due to changes in thoracic impedance and heart orientation during inhalation/exhalation.
+% Additionally, breathing can cause slight heart-rate variability (respiratory sinus arrhythmia).
+
+%% 4.p (0.5P) Effect of apnoea on ECG signal (comment).
+% During apnoea (temporary cessation of breathing), the respiration-related modulation
+% decreases: baseline wander and QRS-amplitude modulation are reduced and the EDR envelope
+% becomes flatter. Respiratory sinus arrhythmia also tends to diminish (less HR modulation).
+
+%% 4.q (2P) Compare respiratory frequency with cardiac component; report ranges.
+% Downsample the respiration surrogate for frequency estimation (efficient, since it is low-frequency).
+ds = max(1, round(Fs/25));
+resp_ds = resp(1:ds:end);
+Fs_ds = Fs/ds;
+
+freqOut = compareRespCardiacFreq(resp_ds, Fs_ds, R_peak, false);
+
+% Report key results in the command window
+fprintf('\n==== Frequency comparison ====\n');
+fprintf('Respiration dominant frequency (Welch): %.3f Hz (%.1f breaths/min)\n', ...
+    freqOut.resp_Hz_dominant, 60*freqOut.resp_Hz_dominant);
+fprintf('Respiration frequency range (time-domain): [%.3f, %.3f] Hz\n', ...
+    freqOut.resp_Hz_range(1), freqOut.resp_Hz_range(2));
+
+fprintf('Cardiac mean frequency (RR): %.3f Hz (%.1f bpm)\n', ...
+    freqOut.card_Hz_mean, 60*freqOut.card_Hz_mean);
+fprintf('Cardiac frequency range (RR): [%.3f, %.3f] Hz\n', ...
+    freqOut.card_Hz_range(1), freqOut.card_Hz_range(2));
+
+% Typical ranges (for comparison):
+%   Respiration: ~0.1–0.5 Hz (6–30 breaths/min)
+%   Cardiac:     ~0.8–2.0 Hz (48–120 bpm)
+
