@@ -201,7 +201,7 @@ h(3).hp = flipud(findobj(h(3).ha, 'Type', 'line'));
 % xlim([0 60]);
 % legend('show','Location','best');
 
-h(4).hf = figure('Name','ECG + Resp Envelope (4.n)');
+h(4).hf = figure('Name','ECG + Respiratory Envelope');
 h(4).ha = axes('Parent', h(4).hf);
 
 yyaxis(h(4).ha, 'left');
@@ -247,6 +247,8 @@ h(4).hp(end+1) = plot(h(4).ha, time(iToff), ecg(iToff), 'gs', 'MarkerFaceColor',
 
 % Right axis line
 yyaxis(h(4).ha,'right');
+hold(h(4).ha,'on');          
+grid(h(4).ha,'on');
 h(4).hp(end+1) = plot(h(4).ha, t_env, env, 'DisplayName','Resp. envelope');
 
 % Labels/titles: these return handles
@@ -258,6 +260,8 @@ yyaxis(h(4).ha,'right');
 h(4).hy(2) = ylabel(h(4).ha, 'Envelope (a.u.)');
 
 h(4).hl = legend(h(4).ha, 'show', 'Location','best');
+
+xlim(h(4).ha, [0 10]);
 
 %% 4.o (0.5P) Effect of breathing on ECG signal (comment).
 % Breathing mainly affects the ECG through 
