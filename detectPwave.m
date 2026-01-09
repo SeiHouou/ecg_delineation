@@ -180,15 +180,21 @@ function [P_on, P_peak, P_amp, P_off] = detectPwave(ecg, R_locs, Q_on, Fs, doPlo
 
         % --- P_off (walk right) ---
         o2 = min(i_end, iPp + OffsetWin_s);
-        i  = iPp;
-        while i < o2
-            if abs_d(i) <= thrSlp_off && dev(i) <= thrAmp_off
-                break;
-            end
-            i = i + 1;
+        % i  = iPp;
+        % while i < o2
+        %     if abs_d(i) <= thrSlp_off && dev(i) <= thrAmp_off
+        %         break;
+        %     end
+        %     i = i + 1;
+        %  end
+        % P_off(k) = min(i, i_end);
+        idx = iPp:o2;
+        validOff = (abs_d(idx) <= thrSlp_off) & (dev(idx) <= thrAmp_off);
+        if any(validOff)
+            P_off(k) = idx(find(validOff, 1, 'last'));
+        else
+            P_off(k) = o2;
         end
-        P_off(k) = min(i, i_end);
-
         % Sanity
         if isfinite(P_on(k)) && isfinite(P_off(k)) && P_on(k) >= seeFinite(P_off(k))
             P_on(k)  = NaN;
