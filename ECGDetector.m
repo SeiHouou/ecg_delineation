@@ -70,7 +70,7 @@ legend('show','Location','best');
                                         'BaseSlopeFrac', 0.55);
 
 %% 4.d (1P) Plot ECG and mark found peaks.
-plotECGWithMarkers(ecg, Fs, 'ECG with P/R/T peaks', ...
+plotECGWithMarkers(ecg, Fs, 'ECG with P/R/T peaks (first 10 seconds)', ...
                     'tmin', 0, 'tmax', 10, ...
                     P_peak, 'P peak', ...
                     R_peak, 'R peak', ...
@@ -80,26 +80,28 @@ plotECGWithMarkers(ecg, Fs, 'ECG with P/R/T peaks', ...
 intervals = computeECGIntervals(R_peak, P_on, P_off, Q_on, S_off, T_on, T_off, Fs);
 
 % RR (4.e)
-RR_s = intervals.RR_s;
+RR_s = intervals.RR_s; %checked
 
-% PR interval (4.f)
+% PR interval (4.f) %checked
 PR_s = intervals.PR_s;
 
-% QT interval (4.g)
+% QT interval (4.g) %checked
 QT_s = intervals.QT_s;
 
-% ST interval (4.h)
+% ST interval (4.h) %checked
 STint_s = intervals.STint_s;
 
-% QRS interval (4.i)
+% QRS interval (4.i) %checked
 QRS_s = intervals.QRS_s;
 
-% PR segment (4.j)
+% PR segment (4.j) %checked
 PRseg_s = intervals.PRseg_s;
 
-% ST segment (4.k)
+% ST segment (4.k) %checked
 STseg_s = intervals.STseg_s;
 
+% HR bpm
+mean(intervals.HR_bpm)
 %% 4.l (1P) Plot ECG and mark the found intervals and segments.
 markers = struct(...
             'P_on',P_on, 'P_peak',P_peak, 'P_off',P_off, ...
