@@ -228,17 +228,26 @@ h(4).hl = legend(h(4).ha, 'show', 'Location','best');
 
 xlim(h(4).ha, [0 10]);
 
-%% 4.o (0.5P) Effect of breathing on ECG signal (comment).
-% Breathing mainly affects the ECG through 
-% 1) baseline wander (low-frequency drift)
-% 2) amplitude modulation of the QRS complexes (ECG-derived respiration / EDR),
-%    due to changes in thoracic impedance and heart orientation during inhalation/exhalation.
-% Additionally, breathing can cause slight heart-rate variability (respiratory sinus arrhythmia).
+%% 4.o (0.5P) Effect of breathing on the ECG signal
+% Breathing modulates the ECG mainly through low-frequency baseline wander and small 
+% beat-to-beat morphology/amplitude changes (R-peak amplitude modulation). 
+% These effects are caused by thoracic motion (changing heart–electrode geometry),
+% respiration-related changes in thoracic impedance/conductivity, and small changes 
+% in the cardiac electrical axis during breathing.
+% In addition, breathing modulates heart rate via respiratory sinus arrhythmia (RSA), 
+% where HR increases during inspiration and decreases during expiration.
+% In our plots, the respiratory envelope captures this slow modulation of the ECG over time.
 
-%% 4.p (0.5P) Effect of apnoea on ECG signal (comment).
-% During apnoea (temporary cessation of breathing), the respiration-related modulation
-% decreases: baseline wander and QRS-amplitude modulation are reduced and the EDR envelope
-% becomes flatter. Respiratory sinus arrhythmia also tends to diminish (less HR modulation).
+%% 4.p (0.5P) Effect of apnoea on the ECG signal
+% During apnoea (absence of breathing), the respiration-driven components 
+% (baseline wander and amplitude modulation) tend to decrease/flatten because 
+% thoracic motion is reduced. However, apnoeic events (especially in obstructive sleep 
+% apnea) are often associated with cyclic heart-rate responses: relative bradycardia 
+% during the apnoea followed by tachycardia upon resumption of breathing, reflecting vagal
+% activation and subsequent sympathetic discharge due to hypoxemia/hypercapnia and arousal
+% responses. In the respiratory envelope, apnoea typically appears as a lower-variation 
+% (flatter) segment compared with normal breathing.
+
 
 %% 4.q (2P) Compare respiratory frequency with cardiac component; report ranges.
 
