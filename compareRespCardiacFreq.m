@@ -33,12 +33,13 @@ function out = compareRespCardiacFreq(resp, Fs, R_locs, doPlot, opts)
         opts.RespBand_Hz (1,2) double {mustBePositive} = [0.05 0.8]
         opts.MinBreath_s (1,1) double {mustBePositive} = 1.2
         opts.MaxBreath_s (1,1) double {mustBePositive} = 12
+        opts.RespFs_Hz   (1,1) double {mustBePositive} = 25
     end
 
     resp = resp(:);
     R_locs = R_locs(:);
 
-    % --- Cardiac frequency from RR intervals ---
+    % --- Cardiac frequency from RR intervals --- (use original Fs)
     RR_s = diff(R_locs) ./ Fs;
     RR_s = RR_s(isfinite(RR_s) & RR_s > 0);
 
@@ -46,13 +47,21 @@ function out = compareRespCardiacFreq(resp, Fs, R_locs, doPlot, opts)
     out.card_Hz_mean  = mean(card_Hz, 'omitnan');
     out.card_Hz_range = [min(card_Hz,[],'omitnan') max(card_Hz,[],'omitnan')];
 
+    % --- Respiration (optional sub-sampling for low-frequency analysis) ---
+    Fs_resp = Fs;
+    if opts.RespFs_Hz < Fs
+        ds = max(1, round(Fs / opts.RespFs_Hz));
+        resp = resp(1:ds:end);
+        Fs_resp = Fs / ds;
+    end
+
     % --- Respiration dominant frequency from PSD ---
     n = numel(resp);
-    win = max(256, round(8*Fs));
+    win = max(256, round(8*Fs_resp));
     win = min(win, n);
     if mod(win,2)==1, win = win-1; end
 
-    [Pxx,f] = pwelch(resp, hamming(win), round(0.5*win), [], Fs);
+    [Pxx,f] = pwelch(resp, hamming(win), round(0.5*win), [], Fs_resp);
     band = f>=opts.RespBand_Hz(1) & f<=opts.RespBand_Hz(2);
     if any(band)
         [~,iMax] = max(Pxx(band));
@@ -63,11 +72,11 @@ function out = compareRespCardiacFreq(resp, Fs, R_locs, doPlot, opts)
     end
 
     % --- Respiration range from peak-to-peak times (time domain) ---
-    minDist = round(opts.MinBreath_s * Fs);
+    minDist = round(opts.MinBreath_s * Fs_resp);
     [~,locs] = findpeaks(resp, 'MinPeakDistance', minDist);
 
     if numel(locs) >= 3
-        T = diff(locs) ./ Fs;
+        T = diff(locs) ./ Fs_resp;
         T = T(T>=opts.MinBreath_s & T<=opts.MaxBreath_s);
         resp_Hz = 1 ./ T;
         out.resp_Hz_range = [min(resp_Hz,[],'omitnan') max(resp_Hz,[],'omitnan')];

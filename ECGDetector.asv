@@ -47,7 +47,19 @@ legend('show','Location','best');
 [R_locs, ~, bp_ecg] = detectRpeak(ecg, Fs, false); %Checked function
 
 % QRS delineation: Q onset, Q peak, R peak, S peak, S offset
-[Q_on, Q_peak, R_peak, S_peak, S_off] = delineateQRS(bp_ecg, R_locs, Fs, false); %Checked function
+[Q_on, Q_peak_fil, R_peak, S_peak_fil, S_off] = delineateQRS(bp_ecg, R_locs, Fs, false); %Checked function
+
+% Re-locate Q and S peaks on the ORIGINAL ECG 
+padQ_ms = 5; % safety margin before R (ms)
+padS_ms = 5; % safety margin after R (ms)
+
+% convert ms to samples
+padQ = round(padQ_ms * 1e-3 * Fs);
+padS = round(padS_ms * 1e-3 * Fs); 
+
+Q_peak = refineMinBetween(ecg, Q_on, R_peak - padQ);
+S_peak = refineMinBetween(ecg, R_peak + padS, S_off);
+
 
 %% 4.a (2P) Find the P-peaks in the ECG signal.
 % We also compute P onset/offset to enable PR-interval and PR-segment.
@@ -80,27 +92,28 @@ plotECGWithMarkers(ecg, Fs, 'ECG with P/R/T peaks (first 10 seconds)', ...
 intervals = computeECGIntervals(R_peak, P_on, P_off, Q_on, S_off, T_on, T_off, Fs);
 
 % RR (4.e)
-RR_s = intervals.RR_s;
-mean(RR_s)
+RR_s = intervals.RR_s; %checked
 
-% PR interval (4.f)
+% PR interval (4.f) %checked
 PR_s = intervals.PR_s;
 
-% QT interval (4.g)
+% QT interval (4.g) %checked
 QT_s = intervals.QT_s;
 
-% ST interval (4.h)
+% ST interval (4.h) %checked
 STint_s = intervals.STint_s;
 
-% QRS interval (4.i)
+% QRS interval (4.i) %checked
 QRS_s = intervals.QRS_s;
 
-% PR segment (4.j)
+% PR segment (4.j) %checked
 PRseg_s = intervals.PRseg_s;
 
-% ST segment (4.k)
+% ST segment (4.k) %checked
 STseg_s = intervals.STseg_s;
 
+% HR bpm
+mean(intervals.HR_bpm)
 %% 4.l (1P) Plot ECG and mark the found intervals and segments.
 markers = struct(...
             'P_on',P_on, 'P_peak',P_peak, 'P_off',P_off, ...
@@ -112,7 +125,8 @@ plotECGWithIntervals(ecg, Fs, 'ECG with intervals/segments (first 10 s)', interv
 
 %% 4.m (2P) Determine respiratory component and calculate the envelope.
 % We use ECG-derived respiration (EDR) from beat-to-beat R-peak amplitude modulation.
-[resp, env, t_env] = ecgRespEnvelope(ecg, R_peak, Fs, false);
+[resp, env, t_env] = ecgRespEnvelope(ecg, R_peak, Fs, true); %checked
+
 
 %% 4.n (1P) Plot ECG and envelope in one figure and add all components.
 figure;
@@ -124,7 +138,11 @@ plot(time(P_peak(~isnan(P_peak))), ecg(P_peak(~isnan(P_peak))), 'ro', 'MarkerFac
 plot(time(P_off(~isnan(P_off))), ecg(P_off(~isnan(P_off))), 'go', 'MarkerFaceColor','g', 'DisplayName','P offset');
 
 plot(time(Q_on(~isnan(Q_on))), ecg(Q_on(~isnan(Q_on))), 'k^', 'MarkerFaceColor','k', 'DisplayName','Q onset');
+plot(time(Q_peak(~isnan(Q_peak))), ecg(Q_peak(~isnan(Q_peak))), 'b^', 'MarkerFaceColor','b', 'DisplayName','Q peak');
+
 plot(time(R_peak(~isnan(R_peak))), ecg(R_peak(~isnan(R_peak))), 'rv', 'MarkerFaceColor','r', 'DisplayName','R peak');
+
+plot(time(S_peak(~isnan(S_peak))), ecg(S_peak(~isnan(S_peak))),    'cv', 'MarkerFaceColor','c', 'DisplayName','S peak');
 plot(time(S_off(~isnan(S_off))), ecg(S_off(~isnan(S_off))), 'mv', 'MarkerFaceColor','m', 'DisplayName','S offset');
 
 plot(time(T_on(~isnan(T_on))), ecg(T_on(~isnan(T_on))), 'ks', 'MarkerFaceColor','k', 'DisplayName','T onset');
@@ -145,9 +163,10 @@ xlim([0 60]);
 legend('show','Location','best');
 
 %% 4.o (0.5P) Effect of breathing on ECG signal (comment).
-% Breathing mainly affects the ECG through (i) baseline wander (low-frequency drift)
-% and (ii) amplitude modulation of the QRS complexes (ECG-derived respiration / EDR),
-% due to changes in thoracic impedance and heart orientation during inhalation/exhalation.
+% Breathing mainly affects the ECG through 
+% 1) baseline wander (low-frequency drift)
+% 2) amplitude modulation of the QRS complexes (ECG-derived respiration / EDR),
+%    due to changes in thoracic impedance and heart orientation during inhalation/exhalation.
 % Additionally, breathing can cause slight heart-rate variability (respiratory sinus arrhythmia).
 
 %% 4.p (0.5P) Effect of apnoea on ECG signal (comment).
@@ -156,14 +175,11 @@ legend('show','Location','best');
 % becomes flatter. Respiratory sinus arrhythmia also tends to diminish (less HR modulation).
 
 %% 4.q (2P) Compare respiratory frequency with cardiac component; report ranges.
-% Downsample the respiration surrogate for frequency estimation (efficient, since it is low-frequency).
-ds = max(1, round(Fs/25));
-resp_ds = resp(1:ds:end);
-Fs_ds = Fs/ds;
-
-freqOut = compareRespCardiacFreq(resp_ds, Fs_ds, R_peak, false);
+close all, cls
+freqOut = compareRespCardiacFreq(resp, Fs, R_peak, true);
 
 % Report key results in the command window
+
 fprintf('\n==== Frequency comparison ====\n');
 fprintf('Respiration dominant frequency (Welch): %.3f Hz (%.1f breaths/min)\n', ...
     freqOut.resp_Hz_dominant, 60*freqOut.resp_Hz_dominant);

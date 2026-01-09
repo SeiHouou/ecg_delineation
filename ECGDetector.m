@@ -164,8 +164,7 @@ h(3).hp = flipud(findobj(h(3).ha, 'Type', 'line'));
 
 %% 4.m (2P) Determine respiratory component and calculate the envelope.
 % We use ECG-derived respiration (EDR) from beat-to-beat R-peak amplitude modulation.
-[resp, env, t_env] = ecgRespEnvelope(ecg, R_peak, Fs, false);
-
+[resp, env, t_env] = ecgRespEnvelope(ecg, R_peak, Fs, true); %checked
 
 %% 4.n (1P) Plot ECG and envelope in one figure and add all components.
 % figure;
@@ -276,14 +275,11 @@ xlim(h(4).ha, [0 10]);
 % becomes flatter. Respiratory sinus arrhythmia also tends to diminish (less HR modulation).
 
 %% 4.q (2P) Compare respiratory frequency with cardiac component; report ranges.
-% Downsample the respiration surrogate for frequency estimation (efficient, since it is low-frequency).
-ds = max(1, round(Fs/25));
-resp_ds = resp(1:ds:end);
-Fs_ds = Fs/ds;
 
-freqOut = compareRespCardiacFreq(resp_ds, Fs_ds, R_peak, false);
+freqOut = compareRespCardiacFreq(resp, Fs, R_peak, false); %checked
 
 % Report key results in the command window
+
 fprintf('\n==== Frequency comparison ====\n');
 fprintf('Respiration dominant frequency (Welch): %.3f Hz (%.1f breaths/min)\n', ...
     freqOut.resp_Hz_dominant, 60*freqOut.resp_Hz_dominant);
