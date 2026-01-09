@@ -47,7 +47,19 @@ legend('show','Location','best');
 [R_locs, ~, bp_ecg] = detectRpeak(ecg, Fs, false); %Checked function
 
 % QRS delineation: Q onset, Q peak, R peak, S peak, S offset
-[Q_on, Q_peak, R_peak, S_peak, S_off] = delineateQRS(bp_ecg, R_locs, Fs, false); %Checked function
+[Q_on, Q_peak_fil, R_peak, S_peak_fil, S_off] = delineateQRS(bp_ecg, R_locs, Fs, false); %Checked function
+
+% Re-locate Q and S peaks on the ORIGINAL ECG 
+padQ_ms = 5; % safety margin before R (ms)
+padS_ms = 5; % safety margin after R (ms)
+
+% convert ms to samples
+padQ = round(padQ_ms * 1e-3 * Fs);
+padS = round(padS_ms * 1e-3 * Fs); 
+
+Q_peak = refineMinBetween(ecg, Q_on, R_peak - padQ);
+S_peak = refineMinBetween(ecg, R_peak + padS, S_off);
+
 
 %% 4.a (2P) Find the P-peaks in the ECG signal.
 % We also compute P onset/offset to enable PR-interval and PR-segment.
@@ -108,8 +120,7 @@ markers = struct(...
             'Q_on',Q_on, 'R',R_peak, 'S_off',S_off, ...
             'T_on',T_on, 'T_peak',T_peak, 'T_off',T_off);
 
-plotECGWi
-thIntervals(ecg, Fs, 'ECG with intervals/segments (first 10 s)', intervals, markers, ...
+plotECGWithIntervals(ecg, Fs, 'ECG with intervals/segments (first 10 s)', intervals, markers, ...
     'tmin', 0, 'tmax', 10);
 
 %% 4.m (2P) Determine respiratory component and calculate the envelope.
@@ -128,7 +139,11 @@ plot(time(P_peak(~isnan(P_peak))), ecg(P_peak(~isnan(P_peak))), 'ro', 'MarkerFac
 plot(time(P_off(~isnan(P_off))), ecg(P_off(~isnan(P_off))), 'go', 'MarkerFaceColor','g', 'DisplayName','P offset');
 
 plot(time(Q_on(~isnan(Q_on))), ecg(Q_on(~isnan(Q_on))), 'k^', 'MarkerFaceColor','k', 'DisplayName','Q onset');
+plot(time(Q_peak(~isnan(Q_peak))), ecg(Q_peak(~isnan(Q_peak))), 'b^', 'MarkerFaceColor','b', 'DisplayName','Q peak');
+
 plot(time(R_peak(~isnan(R_peak))), ecg(R_peak(~isnan(R_peak))), 'rv', 'MarkerFaceColor','r', 'DisplayName','R peak');
+
+plot(time(S_peak(~isnan(S_peak))), ecg(S_peak(~isnan(S_peak))),    'cv', 'MarkerFaceColor','c', 'DisplayName','S peak');
 plot(time(S_off(~isnan(S_off))), ecg(S_off(~isnan(S_off))), 'mv', 'MarkerFaceColor','m', 'DisplayName','S offset');
 
 plot(time(T_on(~isnan(T_on))), ecg(T_on(~isnan(T_on))), 'ks', 'MarkerFaceColor','k', 'DisplayName','T onset');
