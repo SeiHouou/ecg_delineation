@@ -108,12 +108,15 @@ markers = struct(...
             'Q_on',Q_on, 'R',R_peak, 'S_off',S_off, ...
             'T_on',T_on, 'T_peak',T_peak, 'T_off',T_off);
 
-plotECGWithIntervals(ecg, Fs, 'ECG with intervals/segments (first 10 s)', intervals, markers, ...
+plotECGWi
+thIntervals(ecg, Fs, 'ECG with intervals/segments (first 10 s)', intervals, markers, ...
     'tmin', 0, 'tmax', 10);
 
 %% 4.m (2P) Determine respiratory component and calculate the envelope.
 % We use ECG-derived respiration (EDR) from beat-to-beat R-peak amplitude modulation.
-[resp, env, t_env] = ecgRespEnvelope(ecg, R_peak, Fs, false);
+[resp, env, t_env] = ecgRespEnvelope(ecg, R_peak, Fs, true);
+[resp, env, t_env] = ecgRespLowpass(ecg, Fs, true);
+
 
 %% 4.n (1P) Plot ECG and envelope in one figure and add all components.
 figure;
@@ -146,9 +149,10 @@ xlim([0 60]);
 legend('show','Location','best');
 
 %% 4.o (0.5P) Effect of breathing on ECG signal (comment).
-% Breathing mainly affects the ECG through (i) baseline wander (low-frequency drift)
-% and (ii) amplitude modulation of the QRS complexes (ECG-derived respiration / EDR),
-% due to changes in thoracic impedance and heart orientation during inhalation/exhalation.
+% Breathing mainly affects the ECG through 
+% 1) baseline wander (low-frequency drift)
+% 2) amplitude modulation of the QRS complexes (ECG-derived respiration / EDR),
+%    due to changes in thoracic impedance and heart orientation during inhalation/exhalation.
 % Additionally, breathing can cause slight heart-rate variability (respiratory sinus arrhythmia).
 
 %% 4.p (0.5P) Effect of apnoea on ECG signal (comment).
