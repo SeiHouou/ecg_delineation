@@ -9,7 +9,8 @@
 %
 %
 % MATLAB Version : R2025b
-% File Version : V00 .00
+%
+% File Version : V1.0
 %% 
 
 %% 1. (1P) Clear the workspace.
@@ -55,10 +56,10 @@ h(1).hl = legend(h(1).ha, 'show', 'Location', 'best');
 
 %% 4.b (2P) Find the QRS-complexes in the ECG signal.
 % R peak detection (Pan–Tompkins style front-end)
-[R_locs, ~, bp_ecg] = detectRpeak(ecg, Fs, false); %Checked function
+[R_locs, ~, bp_ecg] = detectRpeak(ecg, Fs, false); 
 
 % QRS delineation: Q onset, Q peak, R peak, S peak, S offset
-[Q_on, Q_peak_fil, R_peak, S_peak_fil, S_off] = delineateQRS(bp_ecg, R_locs, Fs, false); %Checked function
+[Q_on, Q_peak_fil, R_peak, S_peak_fil, S_off] = delineateQRS(bp_ecg, R_locs, Fs, false); 
 
 % Re-locate Q and S peaks on the ORIGINAL ECG 
 padQ_ms = 5; % safety margin before R (ms)
@@ -81,7 +82,7 @@ S_peak = refineMinBetween(ecg, R_peak + padS, S_off);
                                             'OnsetWin_ms', 50, ...
                                             'OffsetWin_ms', 40, ...
                                             'BaseAmpFrac_off', 0.65, ...   
-                                            'BaseSlopeFrac_off', 0.80);    %Checked function
+                                            'BaseSlopeFrac_off', 0.80);    
 
 
 %% 4.c (2P) Find the T-peaks in the ECG signal.
@@ -115,28 +116,25 @@ h(2).hp = flipud(findobj(h(2).ha, 'Type', 'line'));
 intervals = computeECGIntervals(R_peak, P_on, P_off, Q_on, S_off, T_on, T_off, Fs);
 
 %% 4.e RR Interval
-RR_s = intervals.RR_s;       %checked
+RR_s = intervals.RR_s;       
 
 %% 4.f PR interval
-PR_s = intervals.PR_s;       %checked
+PR_s = intervals.PR_s;       
 
 %% 4.g QT interval
-QT_s = intervals.QT_s;       %checked
+QT_s = intervals.QT_s;       
 
 %% 4.h ST interval 
-STint_s = intervals.STint_s; %checked
+STint_s = intervals.STint_s; 
 
 %% 4.i QRS interval 
-QRS_s = intervals.QRS_s;     %checked
+QRS_s = intervals.QRS_s;     
 
 %% 4.j PR segment 
-PRseg_s = intervals.PRseg_s; %checked
+PRseg_s = intervals.PRseg_s; 
 
 %% 4.k ST segment
-STseg_s = intervals.STseg_s; %checked
-
-% HR bpm
-mean(intervals.HR_bpm);
+STseg_s = intervals.STseg_s; 
 
 %% 4.l (1P) Plot ECG and mark the found intervals and segments.
 markers = struct('P_on',P_on, 'P_peak',P_peak, 'P_off',P_off, ...
@@ -164,41 +162,9 @@ h(3).hp = flipud(findobj(h(3).ha, 'Type', 'line'));
 
 %% 4.m (2P) Determine respiratory component and calculate the envelope.
 % We use ECG-derived respiration (EDR) from beat-to-beat R-peak amplitude modulation.
-[resp, env, t_env] = ecgRespEnvelope(ecg, R_peak, Fs, true); %checked
+[resp, env, t_env] = ecgRespEnvelope(ecg, R_peak, Fs, false); 
 
 %% 4.n (1P) Plot ECG and envelope in one figure and add all components.
-% figure;
-% yyaxis left
-% plot(time, ecg, 'DisplayName','ECG');
-% hold on; grid on;
-% plot(time(P_on(~isnan(P_on))), ecg(P_on(~isnan(P_on))), 'ko', 'MarkerFaceColor','k', 'DisplayName','P onset');
-% plot(time(P_peak(~isnan(P_peak))), ecg(P_peak(~isnan(P_peak))), 'ro', 'MarkerFaceColor','r', 'DisplayName','P peak');
-% plot(time(P_off(~isnan(P_off))), ecg(P_off(~isnan(P_off))), 'go', 'MarkerFaceColor','g', 'DisplayName','P offset');
-% 
-% plot(time(Q_on(~isnan(Q_on))), ecg(Q_on(~isnan(Q_on))), 'k^', 'MarkerFaceColor','k', 'DisplayName','Q onset');
-% plot(time(Q_peak(~isnan(Q_peak))), ecg(Q_peak(~isnan(Q_peak))), 'b^', 'MarkerFaceColor','b', 'DisplayName','Q peak');
-% 
-% plot(time(R_peak(~isnan(R_peak))), ecg(R_peak(~isnan(R_peak))), 'rv', 'MarkerFaceColor','r', 'DisplayName','R peak');
-% 
-% plot(time(S_peak(~isnan(S_peak))), ecg(S_peak(~isnan(S_peak))),    'cv', 'MarkerFaceColor','c', 'DisplayName','S peak');
-% plot(time(S_off(~isnan(S_off))), ecg(S_off(~isnan(S_off))), 'mv', 'MarkerFaceColor','m', 'DisplayName','S offset');
-% 
-% plot(time(T_on(~isnan(T_on))), ecg(T_on(~isnan(T_on))), 'ks', 'MarkerFaceColor','k', 'DisplayName','T onset');
-% plot(time(T_peak(~isnan(T_peak))), ecg(T_peak(~isnan(T_peak))), 'rs', 'MarkerFaceColor','r', 'DisplayName','T peak');
-% plot(time(T_off(~isnan(T_off))), ecg(T_off(~isnan(T_off))), 'gs', 'MarkerFaceColor','g', 'DisplayName','T offset');
-% 
-% ylabel('ECG [mV]');
-% 
-% % Envelope on right axis
-% % (env is a low-frequency trend; plotting it at full scale is fine)
-% yyaxis right
-% plot(t_env, env, 'DisplayName','Resp. envelope');
-% ylabel('Envelope (a.u.)');
-% 
-% xlabel('Time [s]');
-% title('ECG and respiratory envelope with delineation');
-% xlim([0 60]);
-% legend('show','Location','best');
 
 h(4).hf = figure('Name','ECG + Respiratory Envelope');
 h(4).ha = axes('Parent', h(4).hf);
@@ -276,7 +242,7 @@ xlim(h(4).ha, [0 10]);
 
 %% 4.q (2P) Compare respiratory frequency with cardiac component; report ranges.
 
-freqOut = compareRespCardiacFreq(resp, Fs, R_peak, false); %checked
+freqOut = compareRespCardiacFreq(resp, Fs, R_peak, false); 
 
 % Report key results in the command window
 
