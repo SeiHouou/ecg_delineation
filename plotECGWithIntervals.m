@@ -43,15 +43,24 @@ function ax = plotECGWithIntervals(ecg, Fs, titleStr, intervals, markers, vararg
     p.addParameter('tmin', 0, @(x) isnumeric(x) && isscalar(x));
     p.addParameter('tmax', t(end), @(x) isnumeric(x) && isscalar(x));
     p.addParameter('Show', ["PR","QRS","QT","STi","PRs","STs"], @(x) isstring(x) || iscellstr(x));
+    p.addParameter('Parent', [], @(h) isempty(h) || isgraphics(h,'axes'));
+    
     p.parse(varargin{:});
 
     tmin = p.Results.tmin;
     tmax = p.Results.tmax;
     show = string(p.Results.Show);
+    parentAx = p.Results.Parent;
 
     % --- plot ECG ---
-    figure;
-    ax = axes;
+    if isempty(parentAx)
+        figure('Name', char(string(titleStr)));
+        ax = axes;
+    else
+        ax = parentAx;     % use the axes passed from outside
+        cla(ax);           % optional: clear existing content
+    end
+
     plot(ax, t, ecg, 'DisplayName','ECG');
     grid(ax,'on'); hold(ax,'on');
 
